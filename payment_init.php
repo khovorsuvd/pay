@@ -9,72 +9,74 @@ include_once 'dbConnect.php';
 require_once 'vendor/stripe/stripe-php/init.php'; 
  
  
-\Stripe\Stripe::setApiKey(STRIPE_API_KEY); 
+\Stripe\Stripe::setApiKey(STRIPE_API_KEY);//  устанавливает API-ключ для взаимодействия с API Stripe.
  
  
-$jsonStr = file_get_contents('php://input'); 
-$jsonObj = json_decode($jsonStr); 
+$jsonStr = file_get_contents('php://input'); //считываетданныеизпотокаввода,
+$jsonObj = json_decode($jsonStr); //преобразует полученные данные в объект JSON.
  
  
-$userID = isset($_SESSION['loggedInUserID'])?$_SESSION['loggedInUserID']:0; 
+$userID = isset($_SESSION['loggedInUserID'])?$_SESSION['loggedInUserID']:0; //Затем проверяется, есть ли в сессии значение loggedInUserID, и если есть, то оно присваивается переменной или 0
  
-if($jsonObj->request_type == 'create_customer_subscription'){ 
+if($jsonObj->request_type == 'create_customer_subscription'){ //проверяется тип запроса в объекте JSON. Если request_type равен 'create_customer_subscription', выполняются следующие действия:
     $subscr_plan_id = !empty($jsonObj->subscr_plan_id)?$jsonObj->subscr_plan_id:''; 
-    $name = !empty($jsonObj->name)?$jsonObj->name:''; 
+    $name = !empty($jsonObj->name)?$jsonObj->name:''; //Значения subscr_plan_id, name и email из объекта JSON присваиваются соответствующим переменным
     $email = !empty($jsonObj->email)?$jsonObj->email:''; 
      
    
-    $sqlQ = "SELECT `name`,`price`,`interval`,`interval_count` FROM plans WHERE id=?"; 
+    $sqlQ = "SELECT `name`,`price`,`interval`,`interval_count` FROM plans WHERE id=?"; //Выполняется SQL-запрос для получения данных о плане подписки из таблицы plans. Значение subscr_plan_id используется для получения соответствующей записи из таблицы.
     $stmt = $db->prepare($sqlQ); 
     $stmt->bind_param("i", $subscr_plan_id); 
     $stmt->execute(); 
-    $stmt->bind_result($planName, $planPrice, $planInterval, $intervalCount); 
+    $stmt->bind_result($planName, $planPrice, $planInterval, $intervalCount); //Результаты запроса привязываются к соответствующим переменным 
     $stmt->fetch(); 
  
    
-    $planPriceCents = round($planPrice*100); 
+    $planPriceCents = round($planPrice*100); //тобыполучитьценувцентах
      
     
-    try {   
+    try {   //Выполняется попытка создания нового клиента в Stripe с помощью метода \Stripe\Customer::create(). В качестве параметров передаются имя и электронная почта клиента.
         $customer = \Stripe\Customer::create([ 
             'name' => $name,  
             'email' => $email 
         ]);  
     }catch(Exception $e) {   
-        $api_error = $e->getMessage();   
+        $api_error = $e->getMessage();   //Если при создании клиента возникает исключение, ошибка сохраняется в переменную $api_error.
     } 
      
-    if(empty($api_error) && $customer){ 
+    if(empty($api_error) && $customer){ //Если переменная пустаиобъектcustomer существует, выполняются следующие действия:
+       
+        
         try { 
             
-            $price = \Stripe\Price::create([ 
+            $price = \Stripe\Price::create([ //Создается новая цена (price) с помощью метода В качестве параметров передаются цена в центах нтерваликоличествоинтервалов иназваниепродукта
                 'unit_amount' => $planPriceCents, 
                 'currency' => STRIPE_CURRENCY, 
                 'recurring' => ['interval' => $planInterval, 'interval_count' => $intervalCount], 
                 'product_data' => ['name' => $planName], 
             ]); 
         } catch (Exception $e) {  
-            $api_error = $e->getMessage(); 
+            $api_error = $e->getMessage(); //Если при создании цены возникает исключение, ошибка сохраняется в переменную $api_error
         } 
          
-        if(empty($api_error) && $price){ 
+        if(empty($api_error) && $price){ //Если переменная пустаиобъектprice существует, выполняются следующие действия:
            
             try { 
-                $subscription = \Stripe\Subscription::create([ 
+                $subscription = \Stripe\Subscription::create([ //Создается новая подписка (subscription) с помощью метода В качестве параметров передаются идентификатор клиента иэлементыподписки вкоторомуказываетсяидентификаторцены
                     'customer' => $customer->id, 
                     'items' => [[ 
                         'price' => $price->id, 
                     ]], 
-                    'payment_behavior' => 'default_incomplete', 
+                    'payment_behavior' => 'default_incomplete', //Устанавливается поведение платежа и сохраняются настройки платежа с сохранением метода оплаты по умолчанию для подписки
                     'payment_settings' => ['save_default_payment_method' => 'on_subscription'], 
-                    'expand' => ['latest_invoice.payment_intent'], 
+                    'expand' => ['latest_invoice.payment_intent'], //Расширяются данные о последнем счете
                 ]); 
             }catch(Exception $e) { 
                 $api_error = $e->getMessage(); 
             } 
              
-            if(empty($api_error) && $subscription){ 
-                $output = [ 
+            if(empty($api_error) && $subscription){ //Если переменная пуста
+                $output = [ //Создается выходной массив данны  преобразуется в формат JSON и выводится с помощью функции echo.
                     'subscriptionId' => $subscription->id, 
                     'clientSecret' => $subscription->latest_invoice->payment_intent->client_secret, 
                     'customerId' => $customer->id 
@@ -98,23 +100,23 @@ if($jsonObj->request_type == 'create_customer_subscription'){
  
     // Retrieve customer info 
     try {   
-        $customer = \Stripe\Customer::retrieve($customer_id);  
+        $customer = \Stripe\Customer::retrieve($customer_id);// выполняется попытка получить данные о клиенте с помощью метода  
     }catch(Exception $e) {   
-        $api_error = $e->getMessage();   
+        $api_error = $e->getMessage(); //В случае возникновения исключения, ошибка сохраняется в переменную  
     } 
      
    
-    if(!empty($payment_intent) && $payment_intent->status == 'succeeded'){ 
-        $payment_intent_id = $payment_intent->id; 
+    if(!empty($payment_intent) && $payment_intent->status == 'succeeded'){ //непустаистатусплатежа и статус платежа равен аксес
+        $payment_intent_id = $payment_intent->id; //Идентификатор платежа 
         $paidAmount = $payment_intent->amount; 
-        $paidAmount = ($paidAmount/100); 
-        $paidCurrency = $payment_intent->currency; 
-        $payment_status = $payment_intent->status; 
+        $paidAmount = ($paidAmount/100); //делитсяна100,чтобыполучитьсуммувосновнойвалюте,иприсваиваетсяпеременной
+        $paidCurrency = $payment_intent->currency;//Валюта платежа 
+        $payment_status = $payment_intent->status; //Статус платежа
         $created = date("Y-m-d H:i:s", $payment_intent->created); 
  
        
         try {   
-            $subscriptionData = \Stripe\Subscription::retrieve($subscription_id);  
+            $subscriptionData = \Stripe\Subscription::retrieve($subscription_id);  // попытка получить данные о подписке с помощью метода
         }catch(Exception $e) {   
             $api_error = $e->getMessage();   
         } 
@@ -168,9 +170,9 @@ if($jsonObj->request_type == 'create_customer_subscription'){
         $stmt->close(); 
          
         $payment_id = 0; 
-        if(!empty($prevPaymentID)){ 
+        if(!empty($prevPaymentID)){ // выполняется SQL-запрос для проверки наличия записи о предыдущем платеже с помощью идентификатора платежа
             $payment_id = $prevPaymentID; 
-        }else{ 
+        }else{ //Если запись о предыдущем платеже не существует, выполняется SQL-запрос для добавления новой записи в таблицу user_subscriptions. Переданные параметры - идентификатор пользователя, идентификатор плана, идентификатор клиента Stripe
             
             $sqlQ = "INSERT INTO user_subscriptions (user_id,plan_id,stripe_customer_id,stripe_plan_price_id,stripe_payment_intent_id,stripe_subscription_id,default_payment_method,default_source,paid_amount,paid_amount_currency,plan_interval,plan_interval_count,customer_name,customer_email,plan_period_start,plan_period_end,created,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"; 
             $stmt = $db->prepare($sqlQ); 
