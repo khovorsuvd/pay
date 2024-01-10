@@ -4,7 +4,7 @@ input[type=number] {
   width: 100%;
   
   padding: 12px;
-  border: 1px solid #ccc;
+
   border-radius: 4px;
   box-sizing: border-box;
   margin-top: 6px;
@@ -24,6 +24,20 @@ input:invalid {
     margin-bottom: 15px;
   }
  
-  
+  .container { display: flex;
+align-items: center;
+justify-content: center;
+flex-direction: column;}
+html{
+    background-color: #2d72d9;
+    font-family:'Times New Roman', Times, serif;
+}
+.panel{
+    background-color: #ccc;
+    padding: 10px;
+    border-radius: 20px;
+}
+
+
   
   

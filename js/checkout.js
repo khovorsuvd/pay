@@ -1,13 +1,13 @@
-// Get API Key
+
 let STRIPE_PUBLISHABLE_KEY = document.currentScript.getAttribute('STRIPE_PUBLISHABLE_KEY');
 
-// Create an instance of the Stripe object and set your publishable API key
+
 const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
 
-// Select subscription form element
+
 const subscrFrm = document.querySelector("#subscrFrm");
 
-// Attach an event handler to subscription form
+
 subscrFrm.addEventListener("submit", handleSubscrSubmit);
 
 let elements = stripe.elements();
@@ -39,7 +39,7 @@ async function handleSubscrSubmit(e) {
     let customer_name = document.getElementById("name").value;
     let customer_email = document.getElementById("email").value;
     
-    // Post the subscription info to the server-side script
+    
     fetch("payment_init.php", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,8 +75,7 @@ function paymentProcess(subscriptionId, clientSecret, customerId){
             showMessage(result.error.message);
             setLoading(false);
         } else {
-            // Successful subscription payment
-            // Post the transaction info to the server-side script and redirect to the payment status page
+            
             fetch("payment_init.php", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -96,7 +95,7 @@ function paymentProcess(subscriptionId, clientSecret, customerId){
     });
 }
 
-// Display message
+
 function showMessage(messageText) {
     const messageContainer = document.querySelector("#paymentResponse");
     
@@ -109,15 +108,15 @@ function showMessage(messageText) {
     }, 5000);
 }
 
-// Show a spinner on payment submission
+
 function setLoading(isLoading) {
     if (isLoading) {
-        // Disable the button and show a spinner
+       
         document.querySelector("#submitBtn").disabled = true;
         document.querySelector("#spinner").classList.remove("hidden");
         document.querySelector("#buttonText").classList.add("hidden");
     } else {
-        // Enable the button and hide spinner
+        
         document.querySelector("#submitBtn").disabled = false;
         document.querySelector("#spinner").classList.add("hidden");
         document.querySelector("#buttonText").classList.remove("hidden");

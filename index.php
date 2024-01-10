@@ -1,11 +1,11 @@
 <?php 
-// Include configuration file  
+ 
 require_once 'config.php'; 
  
-// Include the database connection file 
+
 include_once 'dbConnect.php'; 
  
-// Fetch plans from the database 
+
 $sqlQ = "SELECT * FROM plans"; 
 $stmt = $db->prepare($sqlQ); 
 $stmt->execute(); 
@@ -22,12 +22,12 @@ $stmt->store_result();
 </head>
 <body>
 <div class="container">
-    <h1>PayMe<h1>
+    <h2>PayMe<h2>
     <div class="panel">
     <div class="panel-heading">
         <h3 class="panel-title">Subscription with Stripe</h3>
         
-        <!-- Subscription Plan Info -->
+        
         <div>
             <b>Select Plan:</b>
             <select id="subscr_plan" class="form-control">
@@ -46,10 +46,10 @@ $stmt->store_result();
         </div>
     </div>
     <div class="panel-body">
-        <!-- Display status message -->
+        
         <div id="paymentResponse" class="hidden"></div>
         
-        <!-- Display a subscription form -->
+        
         <form id="subscrFrm">
             <div class="form-group">
                 <label>NAME</label>
@@ -63,11 +63,11 @@ $stmt->store_result();
             <div class="form-group">
                 <label>CARD INFO</label>
                 <div id="card-element">
-                    <!-- Stripe.js will create card input elements here -->
+                   
                 </div>
             </div>
             
-            <!-- Form submit button -->
+          
             <button id="submitBtn" class="btn btn-success">
                 <div class="spinner hidden" id="spinner"></div>
                 <span id="buttonText">Proceed</span>

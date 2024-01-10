@@ -1,18 +1,18 @@
 <?php 
-// Include the configuration file  
+
 require_once 'config.php'; 
  
-// Include the database connection file  
+
 require_once 'dbConnect.php'; 
  
 $payment_id = $statusMsg = ''; 
 $status = 'error'; 
  
-// Check whether the subscription ID is not empty 
+
 if(!empty($_GET['sid'])){ 
     $subscr_id  = base64_decode($_GET['sid']); 
      
-    // Fetch subscription info from the database 
+   
     $sqlQ = "SELECT S.id, S.stripe_subscription_id, S.paid_amount, S.paid_amount_currency, S.plan_interval, S.plan_interval_count, S.plan_period_start, S.plan_period_end, S.customer_name, S.customer_email, S.status, P.name as plan_name, P.price as plan_amount FROM user_subscriptions as S LEFT JOIN plans as P On P.id = S.plan_id WHERE S.id = ?"; 
     $stmt = $db->prepare($sqlQ);  
     $stmt->bind_param("i", $subscr_id); 
@@ -20,7 +20,7 @@ if(!empty($_GET['sid'])){
     $stmt->store_result(); 
      
     if($stmt->num_rows > 0){ 
-        // Subscription and transaction details 
+       
         $stmt->bind_result($subscription_id, $stripe_subscription_id, $paid_amount, $paid_amount_currency, $plan_interval, $plan_interval_count, $plan_period_start, $plan_period_end, $customer_name, $customer_email, $subscr_status, $plan_name, $plan_amount); 
         $stmt->fetch(); 
          

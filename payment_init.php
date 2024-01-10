@@ -1,21 +1,21 @@
 <?php 
-// Include the configuration file 
+
 require_once 'config.php'; 
  
-// Include the database connection file 
+
 include_once 'dbConnect.php'; 
  
-// Include the Stripe PHP library 
+
 require_once 'vendor/stripe/stripe-php/init.php'; 
  
-// Set API key 
+ 
 \Stripe\Stripe::setApiKey(STRIPE_API_KEY); 
  
-// Retrieve JSON from POST body 
+ 
 $jsonStr = file_get_contents('php://input'); 
 $jsonObj = json_decode($jsonStr); 
  
-// Get user ID from current SESSION 
+ 
 $userID = isset($_SESSION['loggedInUserID'])?$_SESSION['loggedInUserID']:0; 
  
 if($jsonObj->request_type == 'create_customer_subscription'){ 
@@ -23,7 +23,7 @@ if($jsonObj->request_type == 'create_customer_subscription'){
     $name = !empty($jsonObj->name)?$jsonObj->name:''; 
     $email = !empty($jsonObj->email)?$jsonObj->email:''; 
      
-    // Fetch plan details from the database 
+   
     $sqlQ = "SELECT `name`,`price`,`interval`,`interval_count` FROM plans WHERE id=?"; 
     $stmt = $db->prepare($sqlQ); 
     $stmt->bind_param("i", $subscr_plan_id); 
@@ -31,10 +31,10 @@ if($jsonObj->request_type == 'create_customer_subscription'){
     $stmt->bind_result($planName, $planPrice, $planInterval, $intervalCount); 
     $stmt->fetch(); 
  
-    // Convert price to cents 
+   
     $planPriceCents = round($planPrice*100); 
      
-    // Add customer to stripe 
+    
     try {   
         $customer = \Stripe\Customer::create([ 
             'name' => $name,  
@@ -46,7 +46,7 @@ if($jsonObj->request_type == 'create_customer_subscription'){
      
     if(empty($api_error) && $customer){ 
         try { 
-            // Create price with subscription info and interval 
+            
             $price = \Stripe\Price::create([ 
                 'unit_amount' => $planPriceCents, 
                 'currency' => STRIPE_CURRENCY, 
@@ -58,7 +58,7 @@ if($jsonObj->request_type == 'create_customer_subscription'){
         } 
          
         if(empty($api_error) && $price){ 
-            // Create a new subscription 
+           
             try { 
                 $subscription = \Stripe\Subscription::create([ 
                     'customer' => $customer->id, 
@@ -103,7 +103,7 @@ if($jsonObj->request_type == 'create_customer_subscription'){
         $api_error = $e->getMessage();   
     } 
      
-    // Check whether the charge was successful 
+   
     if(!empty($payment_intent) && $payment_intent->status == 'succeeded'){ 
         $payment_intent_id = $payment_intent->id; 
         $paidAmount = $payment_intent->amount; 
@@ -112,7 +112,7 @@ if($jsonObj->request_type == 'create_customer_subscription'){
         $payment_status = $payment_intent->status; 
         $created = date("Y-m-d H:i:s", $payment_intent->created); 
  
-        // Retrieve subscription info 
+       
         try {   
             $subscriptionData = \Stripe\Subscription::retrieve($subscription_id);  
         }catch(Exception $e) {   
@@ -144,7 +144,7 @@ if($jsonObj->request_type == 'create_customer_subscription'){
                 $last_name = !empty($name_arr[1])?$name_arr[1]:''; 
             } 
              
-            // Insert user details if not exists in the DB users table 
+          
             if(empty($userID)){ 
                 $sqlQ = "INSERT INTO users (first_name,last_name,email) VALUES (?,?,?)"; 
                 $stmt = $db->prepare($sqlQ); 
@@ -157,7 +157,7 @@ if($jsonObj->request_type == 'create_customer_subscription'){
             } 
         } 
          
-        // Check if any transaction data exists already with the same TXN ID 
+       
         $sqlQ = "SELECT id FROM user_subscriptions WHERE stripe_payment_intent_id = ?"; 
         $stmt = $db->prepare($sqlQ);  
         $stmt->bind_param("s", $payment_intent_id); 
@@ -171,7 +171,7 @@ if($jsonObj->request_type == 'create_customer_subscription'){
         if(!empty($prevPaymentID)){ 
             $payment_id = $prevPaymentID; 
         }else{ 
-            // Insert transaction data into the database 
+            
             $sqlQ = "INSERT INTO user_subscriptions (user_id,plan_id,stripe_customer_id,stripe_plan_price_id,stripe_payment_intent_id,stripe_subscription_id,default_payment_method,default_source,paid_amount,paid_amount_currency,plan_interval,plan_interval_count,customer_name,customer_email,plan_period_start,plan_period_end,created,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"; 
             $stmt = $db->prepare($sqlQ); 
             $stmt->bind_param("iissssssdssissssss", $userID, $subscr_plan_id, $customer_id, $plan_price_id, $payment_intent_id, $subscription_id, $default_payment_method, $default_source, $paidAmount, $paidCurrency, $plan_interval, $plan_interval_count, $customer_name, $customer_email, $current_period_start, $current_period_end, $created, $payment_status); 
@@ -180,7 +180,7 @@ if($jsonObj->request_type == 'create_customer_subscription'){
             if($insert){ 
                 $payment_id = $stmt->insert_id; 
                  
-                // Update subscription ID in users table 
+                
                 $sqlQ = "UPDATE users SET subscription_id=? WHERE id=?"; 
                 $stmt = $db->prepare($sqlQ); 
                 $stmt->bind_param("ii", $payment_id, $userID); 
